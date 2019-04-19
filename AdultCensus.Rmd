@@ -1,5 +1,5 @@
 ---
-title: "Project"
+title: "Adult Census Project"
 author: "Group 4 (Adi, Pam, Jennifer, Jason)"
 date: "April 19, 2019"
 output: word_document
