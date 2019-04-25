@@ -19,6 +19,53 @@ When you click the **Knit** button a document will be generated that includes bo
 summary(cars)
 ```
 
+##Clear workspace
+```{r}
+rm(list = ls())
+```
+
+##Libraries and packages
+```{r}
+
+library(tidyverse)
+```
+
+##Read file and view data
+
+We read the file into R and look at the data to get a sense of what we are working with.
+```{r}
+mydata<-read.csv(file = "adult.csv")
+head(mydata)
+```
+
+##Save dataset in tidy way 
+```{r}
+mydata<-as_tibble(mydata)
+```
+
+##Check for null values and count the number of null values
+
+Since there are a number of records in our data that contain "?" we first need to let R know that these are missing values
+```{r}
+## set ? = NA
+mydata$workclass[mydata$workclass == "?"] <- NA
+mydata$occupation[mydata$occupation == "?"] <- NA
+mydata$native.country[mydata$native.country == "?"] <- NA
+
+## Count number of missing values
+ 
+sum(is.na(mydata))
+
+## we have 4262 missing values in our dataset
+```
+## Remove missing values
+```{r}
+clean<-na.omit(mydata)
+```
+```{r}
+View(clean)
+```
+
 ## Including Plots
 
 You can also embed plots, for example:
