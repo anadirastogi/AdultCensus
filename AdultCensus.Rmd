@@ -79,8 +79,29 @@ Note that the `echo = FALSE` parameter was added to the code chunk to prevent pr
 # a plot showing relationship between income and education and hours per week
 ```{r}
 mydata%>%
-  ggplot(aes(x=education.num,y=hours.per.week,colour=income))+
-  geom_point(shape=1)+
-  facet_wrap(~income)
+ggplot(aes(x=education.num, y=1, fill=income))+ 
+  geom_bar(stat = "identity", position = "stack")
+
 ```
+
+```{r}
+mydata%>%
+  ggplot(aes(x=education.num,fill=income))+geom_histogram(binwidth=1,position="stack")+
+  facet_wrap(~income)
+
+mydata%>%
+  ggplot(aes(x=,fill=income))+geom_histogram(binwidth=15)+
+  facet_wrap(~income)
+
+mydata%>%
+  ggplot(aes(x=capital.loss,fill=income))+geom_histogram(binwidth=500)+
+  facet_wrap(~income)
+
+mydata%>%
+  ggplot(aes(x=capital.gain,fill=income))+geom_histogram(binwidth=20000)+
+  facet_wrap(~income)
+
+```
+
+
 
