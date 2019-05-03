@@ -60,10 +60,10 @@ sum(is.na(mydata))
 ```
 ## Remove missing values
 ```{r}
-clean<-na.omit(mydata)
+mydata2<-na.omit(mydata)
 ```
 ```{r}
-View(clean)
+View(mydata2)
 ```
 
 ## Including Plots
@@ -78,27 +78,31 @@ Note that the `echo = FALSE` parameter was added to the code chunk to prevent pr
 
 # a plot showing relationship between income and education and hours per week
 ```{r}
-mydata%>%
+mydata2%>%
 ggplot(aes(x=education.num, y=1, fill=income))+ 
   geom_bar(stat = "identity", position = "stack")
 
 ```
 
 ```{r}
-mydata%>%
+mydata2%>%
   ggplot(aes(x=education.num,fill=income))+geom_histogram(binwidth=1,position="stack")+
   facet_wrap(~income)
 
-mydata%>%
-  ggplot(aes(x=,fill=income))+geom_histogram(binwidth=15)+
+mydata2%>%
+  ggplot(aes(x=age,fill=income))+geom_histogram(binwidth=15)+
   facet_wrap(~income)
 
-mydata%>%
+mydata2%>%
   ggplot(aes(x=capital.loss,fill=income))+geom_histogram(binwidth=500)+
   facet_wrap(~income)
 
-mydata%>%
+mydata2%>%
   ggplot(aes(x=capital.gain,fill=income))+geom_histogram(binwidth=20000)+
+  facet_wrap(~income)
+
+mydata2%>%
+  ggplot(aes(x=hours.per.week,fill=income))+geom_histogram(binwidth=15)+
   facet_wrap(~income)
 
 ```
