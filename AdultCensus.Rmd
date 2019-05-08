@@ -23,6 +23,11 @@ rm(list = ls())
 
 ##Libraries and packages
 ```{r}
+install.packages("caret")
+```
+
+
+```{r}
 install.packages("e1071")
 library(e1071)
 library(tidyverse)
@@ -211,19 +216,6 @@ head(model_svm$fitted)
 tail(model_svm$fitted)
 ```
 
-```{r}
-## Predict values using svm model
-predicted_svm<-predict(model_svm,mydata2,decision.values = TRUE) 
-
-head(attr(predicted_svm, "decision.values"))
-```
-
-
-```{r}
-mydata2$svm_pred_class <- predict(model_svm, mydata2) 
-mydata2$svm_dv<-attr(predicted_svm, "decision.values")
-```
-
 ## Tuning
 We can tune SVM models using `tune` function. Set a range of search values for the parameter. It builds an SVM model for each possible combination of parameter values and evaluate accuracy. It will return the parameter combination that yields the best accuracy. 
 ```{r}
@@ -246,10 +238,8 @@ print(svm_tune)                              # best parameters for the model
 best_svm_mod <- svm_tune$best.model
 test$svm_pred_class <- predict(best_svm_mod, test) # save the predicted class by the svm model
 test$svm_dv<-as.numeric(attr(predict(best_svm_mod, test, decision.values = TRUE),"decision.values"))
-```
 
-## Validating
-```{r}
+table(test$income,test$svm_pred_class)
 ```
 
 ## Logistic Regression
@@ -262,33 +252,38 @@ summary(logit_model)
 ```
 
 ```{r}
-#mydata2$log_odd<-predict(logit_model)                         # get predicted log odds (default)
-training$logit_pred_prob<-predict(logit_model,type="response") # get predicted probabilities
+## Make prediction on training dataset
+training$logit_pred_prob<-predict(logit_model,training,type="response") # get predicted probabilities
+training$logit_pred_class<-ifelse(training$logit_pred_prob>0.5,">50K","<=50K") 
+
+## Confusion Matrix 
+table(training$income,training$logit_pred_class)
+
+## Training accuracy = (16876+3661)/24162 = 85%
 ```
 
-With the predicted probabilities, you may want to sort customers by probability of default in descending order
 ```{r}
-training%>%
-  arrange(desc(logit_pred_prob))
-```
+## Make prediction on test dataset
+test$logit_pred_prob<-predict(logit_model,test,type="response")
+test$logit_pred_class<-ifelse(test$logit_pred_prob>0.5,">50K","<=50K") 
 
-And use a different cut-off for class prediction using `ifelse()`. 
-```{r}
-#mydata2$logit_pred_class<-ifelse(mydata2$logit_pred_prob>0.5,"Yes","No")
+## Confusion accuracy
+table(test$income,test$logit_pred_class,dnn=c("Predicted","Actual"))
+
+
+## Testing accuracy = (4140+915)/6000 = 84.25%
 ```
 
 ## Performance Visualization with ROC
 ```{r}
-
 #ct_roc<-roc(test$default,test$ct_pred_prob,auc=TRUE)
 #plot(ct_roc,print.auc=TRUE,col="blue")
 
 #rf_roc<-roc(test$default,test$rf_pred_prob,auc=TRUE)
 #plot(rf_roc,print.auc=TRUE,print.auc.y=.4,col="green", add=TRUE)
 
-#logit_roc<-roc(test$default,test$logit_pred_prob,auc=TRUE)
+#logit_roc<-roc(test$income,test$logit_pred_prob,auc=TRUE)
 #plot(logit_roc,print.auc=TRUE,print.auc.y=.3, col="red",add=TRUE)
 
-#svm_roc<-roc(test$default,test$svm_dv,auc=TRUE)
+#svm_roc<-roc(test$incomet,test$svm_dv,auc=TRUE)
 #plot(svm_roc,print.auc=TRUE,print.auc.y=.2, col="black",add=TRUE)
-
