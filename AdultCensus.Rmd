@@ -194,8 +194,19 @@ table(test$ct_bp_pred_class,test$income, dnn=c("predicted","actual"))  # confusi
 ```
 accuracy = 5137 / (5137 + 863) = 0.8562
 
-Conclusion: As adding more complexity beyond 0.03 does not improve the performance much, we will choose cp as 0.03.
+```{r}
+ad_model<-rpart(income~.,           # model formula
+                data=training,                     # dataset
+                method="class",                  
+                control=rpart.control(cp=0.004))
+rpart.plot(ad_model)   # tree plot
+test$ct_ad_pred_prob<-predict(ad_model,test)[,2]
+test$ct_ad_pred_class<-predict(ad_model,test,type="class")
+table(test$ct_ad_pred_class==test$income)  # error rate
+table(test$ct_ad_pred_class,test$income, dnn=c("predicted","actual"))  # confusion table on test data
+```
 
+Conclusion: As adding more complexity does not improve the performance much, we will choose cp as 0.004. The tree result will be manageable to understand, and the performance seems to be great.
 
 <<<<<<< HEAD
 Check the accuracy of the model by comparing the the actual values (income) and the predicted values (ct_pred_class).
@@ -203,7 +214,6 @@ Check the accuracy of the model by comparing the the actual values (income) and 
 table(test$income==test$ct_pred_class)    
 ```
 accuracy = 5037 / (5037 + 963) = 0.8395
-
 =======
 ## Looking at target variable
 ```{r}
