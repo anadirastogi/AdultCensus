@@ -165,6 +165,80 @@ index <- sample(30162, 6000) # random selection of indices.
 test <- mydata2[index,]       # save 20% as a test dataset
 training <-mydata2[-index,]   # save the rest as a training set
 ```
+#Tree-based classification model
+```{r}
+library(rpart)
+library(rpart.plot)
+training_model<-rpart(income~.,           # model formula
+                data=training,                     # dataset
+                method="class",                   # "class" indicates a classification tree model 
+                control=rpart.control(cp=0.03))   # tree control parameters. 
+rpart.plot(training_model)   # tree plot
+```
+# predicting probabilities/class labels for test data
+Now, the model will be evaluated on a test data. For this, we  apply the model to the test dataset and get the predicted values. It can be done by providing a dataset name with a model to `predict()` function. 
+```{r}
+test$ct_pred_prob<-predict(training_model,test)[,2]
+test$ct_pred_class<-predict(training_model,test,type="class")
+test
+```
+
+Check the accuracy of the model by comparing the the actual values (income) and the predicted values (ct_pred_class).
+```{r}
+table(test$income==test$ct_pred_class)    
+```
+accuracy = 5037 / (5037 + 963) = 0.8395
+
+# k-fold Cross-validation 
+```{r}
+set.seed(1)   # set a random seed 
+full_tree<-rpart(income~.,
+                     data=training, 
+                     method="class",
+                     control=rpart.control(cp=0))
+rpart.plot(full_tree)
+```
+
+
+```{r}
+printcp(full_tree)   # xerror, xstd - cross validation results  
+```
+
+```{r}
+plotcp(full_tree)    
+```
+
+
+```{r}
+min_xerror<-full_tree$cptable[which.min(full_tree$cptable[,"xerror"]),]
+min_xerror
+# prune tree with minimum cp value
+min_xerror_tree<-prune(full_tree, cp=min_xerror[1])
+rpart.plot(min_xerror_tree)
+```
+
+Let's consider mim_xerror_tree as the best pruned tree, and get the prediction. 
+```{r}
+bp_tree<-min_xerror_tree
+test$ct_bp_pred_prob<-predict(bp_tree,test)[,2]
+test$ct_bp_pred_class=predict(bp_tree,test,type="class")
+table(test$ct_bp_pred_class==test$income)  # error rate
+table(test$ct_bp_pred_class,test$income, dnn=c("predicted","actual"))  # confusion table on test data
+```
+accuracy = 5137 / (5137 + 863) = 0.8562
+
+```{r}
+ad_model<-rpart(income~.,           # model formula
+                data=training,                     # dataset
+                method="class",                   # "class" indicates a classification tree model 
+                control=rpart.control(cp=0.004))   # tree control parameters. 
+rpart.plot(ad_model)   # tree plot
+test$ct_ad_pred_prob<-predict(ad_model,test)[,2]
+test$ct_ad_pred_class=predict(ad_model,test,type="class")
+table(test$ct_ad_pred_class==test$income)  # error rate
+table(test$ct_ad_pred_class,test$income, dnn=c("predicted","actual"))
+```
+Conclusion: We dicide to choose cp as 0.004. Under this value, the tree result is easily managebale and the tree performance seems to be great.
 
 ##### SVM
 
