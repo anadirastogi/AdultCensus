@@ -9,7 +9,7 @@ output: word_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## R Markdown
+## R Markdownuuuy
 
 This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
 
@@ -102,6 +102,75 @@ mydata%>%
   facet_wrap(~income)
 
 ```
+#
+```{r}
+set.seed(1)   # set a random seed 
+index <- sample(30162,6000) # random selection of indices. 
+test <- clean[index,]       # save 20% as a test dataset
+training <-clean[-index,]   # save the rest as a training set
+```
+
+#Tree-based classification model
+```{r}
+library(rpart)
+library(rpart.plot)
+training_model<-rpart(income~.,           # model formula
+                data=training,                     # dataset
+                method="class",                   # "class" indicates a classification tree model 
+                control=rpart.control(cp=0.03))   # tree control parameters. 
+rpart.plot(training_model)   # tree plot
+```
+# predicting probabilities/class labels for test data
+Now, the model will be evaluated on a test data. For this, we  apply the model to the test dataset and get the predicted values. It can be done by providing a dataset name with a model to `predict()` function. 
+```{r}
+test$ct_pred_prob<-predict(training_model,test)[,2]
+test$ct_pred_class<-predict(training_model,test,type="class")
+test
+```
+
+Check the accuracy of the model by comparing the the actual values (income) and the predicted values (ct_pred_class).
+```{r}
+table(test$income==test$ct_pred_class)    
+```
+accuracy = 5037 / (5037 + 963) = 0.8395
+
+# k-fold Cross-validation 
+```{r}
+set.seed(1)   # set a random seed 
+full_tree<-rpart(income~.,
+                     data=training, 
+                     method="class",
+                     control=rpart.control(cp=0))
+
+rpart.plot(full_tree)
+```
 
 
+```{r}
+printcp(full_tree)   # xerror, xstd - cross validation results  
+```
 
+```{r}
+plotcp(full_tree)    
+```
+
+
+```{r}
+min_xerror<-full_tree$cptable[which.min(full_tree$cptable[,"xerror"]),]
+min_xerror
+
+# prune tree with minimum cp value
+min_xerror_tree<-prune(full_tree, cp=min_xerror[1])
+rpart.plot(min_xerror_tree)
+```
+
+Let's consider mim_xerror_tree as the best pruned tree, and get the prediction. 
+```{r}
+bp_tree<-min_xerror_tree
+test$ct_bp_pred_prob<-predict(bp_tree,test)[,2]
+test$ct_bp_pred_class=predict(bp_tree,test,type="class")
+
+table(test$ct_bp_pred_class==test$income)  # error rate
+table(test$ct_bp_pred_class,test$income, dnn=c("predicted","actual"))  # confusion table on test data
+```
+accuracy = 5137 / (5137 + 863) = 0.8562
