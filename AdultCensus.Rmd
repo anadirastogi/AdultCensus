@@ -132,8 +132,8 @@ mydata2%>%
 ```{r}
 set.seed(1)   # set a random seed 
 index <- sample(30162,6000) # random selection of indices. 
-test <- clean[index,]       # save 20% as a test dataset
-training <-clean[-index,]   # save the rest as a training set
+test <-mydata2[index,]       # save 20% as a test dataset
+training <- mydata2[-index,]   # save the rest as a training set
 ```
 
 #Tree-based classification model
@@ -194,6 +194,7 @@ table(test$ct_bp_pred_class,test$income, dnn=c("predicted","actual"))  # confusi
 ```
 accuracy = 5137 / (5137 + 863) = 0.8562
 
+Conclusion: As adding more complexity beyond 0.03 does not improve the performance much, we will choose cp as 0.03.
 
 
 <<<<<<< HEAD
@@ -202,6 +203,7 @@ Check the accuracy of the model by comparing the the actual values (income) and 
 table(test$income==test$ct_pred_class)    
 ```
 accuracy = 5037 / (5037 + 963) = 0.8395
+
 =======
 ## Looking at target variable
 ```{r}
