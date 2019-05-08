@@ -153,6 +153,48 @@ test$ct_pred_prob<-predict(training_model,test)[,2]
 test$ct_pred_class<-predict(training_model,test,type="class")
 test
 ```
+# k-fold Cross-validation 
+```{r}
+set.seed(1)   # set a random seed 
+full_tree<-rpart(income~.,
+                     data=training, 
+                     method="class",
+                     control=rpart.control(cp=0))
+
+rpart.plot(full_tree)
+```
+
+
+```{r}
+printcp(full_tree)   # xerror, xstd - cross validation results  
+```
+
+```{r}
+plotcp(full_tree)    
+```
+
+
+```{r}
+min_xerror<-full_tree$cptable[which.min(full_tree$cptable[,"xerror"]),]
+min_xerror
+
+# prune tree with minimum cp value
+min_xerror_tree<-prune(full_tree, cp=min_xerror[1])
+rpart.plot(min_xerror_tree)
+```
+
+Let's consider mim_xerror_tree as the best pruned tree, and get the prediction. 
+```{r}
+bp_tree<-min_xerror_tree
+test$ct_bp_pred_prob<-predict(bp_tree,test)[,2]
+test$ct_bp_pred_class=predict(bp_tree,test,type="class")
+
+table(test$ct_bp_pred_class==test$income)  # error rate
+table(test$ct_bp_pred_class,test$income, dnn=c("predicted","actual"))  # confusion table on test data
+```
+accuracy = 5137 / (5137 + 863) = 0.8562
+
+
 
 <<<<<<< HEAD
 Check the accuracy of the model by comparing the the actual values (income) and the predicted values (ct_pred_class).
@@ -210,43 +252,3 @@ model_svm
 ```
 >>>>>>> 95ced096e9933f96c25b04afbb7acdaf78b01b68
 
-# k-fold Cross-validation 
-```{r}
-set.seed(1)   # set a random seed 
-full_tree<-rpart(income~.,
-                     data=training, 
-                     method="class",
-                     control=rpart.control(cp=0))
-
-rpart.plot(full_tree)
-```
-
-
-```{r}
-printcp(full_tree)   # xerror, xstd - cross validation results  
-```
-
-```{r}
-plotcp(full_tree)    
-```
-
-
-```{r}
-min_xerror<-full_tree$cptable[which.min(full_tree$cptable[,"xerror"]),]
-min_xerror
-
-# prune tree with minimum cp value
-min_xerror_tree<-prune(full_tree, cp=min_xerror[1])
-rpart.plot(min_xerror_tree)
-```
-
-Let's consider mim_xerror_tree as the best pruned tree, and get the prediction. 
-```{r}
-bp_tree<-min_xerror_tree
-test$ct_bp_pred_prob<-predict(bp_tree,test)[,2]
-test$ct_bp_pred_class=predict(bp_tree,test,type="class")
-
-table(test$ct_bp_pred_class==test$income)  # error rate
-table(test$ct_bp_pred_class,test$income, dnn=c("predicted","actual"))  # confusion table on test data
-```
-accuracy = 5137 / (5137 + 863) = 0.8562
