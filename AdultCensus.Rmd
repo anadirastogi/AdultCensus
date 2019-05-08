@@ -15,10 +15,7 @@ This is an R Markdown document. Markdown is a simple formatting syntax for autho
 
 When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
 
-```{r cars}
-summary(cars)
-```
-
+##Data preprocessing
 ##Clear workspace
 ```{r}
 rm(list = ls())
@@ -26,8 +23,10 @@ rm(list = ls())
 
 ##Libraries and packages
 ```{r}
-
+install.packages("e1071")
+library(e1071)
 library(tidyverse)
+library(ggplot2)
 ```
 
 ##Read file and view data
@@ -41,66 +40,93 @@ head(mydata)
 ##Save dataset in tidy way 
 ```{r}
 mydata<-as_tibble(mydata)
+View(mydata)
 ```
 
 ##Check for null values and count the number of null values
 
 Since there are a number of records in our data that contain "?" we first need to let R know that these are missing values
 ```{r}
+## null values appear as a questionmark in the data
 ## set ? = NA
 mydata$workclass[mydata$workclass == "?"] <- NA
 mydata$occupation[mydata$occupation == "?"] <- NA
 mydata$native.country[mydata$native.country == "?"] <- NA
 
 ## Count number of missing values
- 
 sum(is.na(mydata))
 
 ## we have 4262 missing values in our dataset
 ```
+
+## analyze missing values
+```{r}
+## want to look at missing values to better understand the source/cause of missing data
+## quick visual inspection shows us that wherever occupation is NA, workclass is also NA
+mydata%>%
+  filter(is.na(occupation))%>%
+  arrange(education, marital.status)
+
+## upon a quick visual inspection, there does not seem to be an obvious relationship between the records with missing information, therefore we will seek to simply remove the missing values
+```
+
 ## Remove missing values
 ```{r}
-clean<-na.omit(mydata)
+mydata2<-na.omit(mydata)
 ```
+
+## Data Visualization
+
+# a bar chart showing relationship between income and education
 ```{r}
-View(clean)
-```
-
-## Including Plots
-
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
-```
-
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
-
-# a plot showing relationship between income and education and hours per week
-```{r}
-mydata%>%
+mydata2%>%
 ggplot(aes(x=education.num, y=1, fill=income))+ 
   geom_bar(stat = "identity", position = "stack")
 
 ```
-
+## plotting relationships of the other attribues with income (target variable)
 ```{r}
-mydata%>%
+
+## Numeric Variables
+
+##ecucation.num vs income
+mydata2%>%
   ggplot(aes(x=education.num,fill=income))+geom_histogram(binwidth=1,position="stack")+
   facet_wrap(~income)
 
-mydata%>%
-  ggplot(aes(x=,fill=income))+geom_histogram(binwidth=15)+
+##age vs income
+mydata2%>%
+  ggplot(aes(x=age,fill=income))+geom_histogram(binwidth=15)+
   facet_wrap(~income)
 
-mydata%>%
+mydata2%>%
+  ggplot(aes(x=age,fill=income))+geom_histogram(binwidth=1, colour="black", position="stack")
+
+##capital.loss vs income
+mydata2%>%
   ggplot(aes(x=capital.loss,fill=income))+geom_histogram(binwidth=500)+
   facet_wrap(~income)
 
-mydata%>%
+##capital.gain vs income
+mydata2%>%
   ggplot(aes(x=capital.gain,fill=income))+geom_histogram(binwidth=20000)+
   facet_wrap(~income)
 
+## hours worked vs income
+mydata2%>%
+  ggplot(aes(x=hours.per.week,fill=income))+geom_histogram(binwidth=5, colour="black", position="stack")
+
+```
+```{r}
+## Categorical variables
+
+## occupation vs income
+mydata2%>%
+  ggplot(aes(x=occupation,fill=income))+geom_bar(size=5)+coord_flip()
+
+## education vs income
+mydata2%>%
+  ggplot(aes(x=education,fill=income))+geom_bar(size=5)+coord_flip()
 ```
 #
 ```{r}
@@ -128,11 +154,61 @@ test$ct_pred_class<-predict(training_model,test,type="class")
 test
 ```
 
+<<<<<<< HEAD
 Check the accuracy of the model by comparing the the actual values (income) and the predicted values (ct_pred_class).
 ```{r}
 table(test$income==test$ct_pred_class)    
 ```
 accuracy = 5037 / (5037 + 963) = 0.8395
+=======
+## Looking at target variable
+```{r}
+## check how many records have income >50k and how many do not
+table(mydata2$income)
+## we see that most of the records indicate income of <=50k, only ~25% have >50k
+
+mydata2%>%
+  ggplot(aes(x=income, fill=education))+geom_bar(size=5)
+
+mydata2%>%
+  ggplot(aes(x=income, fill=sex))+geom_bar(size=5)
+## men are a bigger % of the high earners than females
+
+```
+###### Split data into training and testing set
+```{r}
+set.seed(1)
+idx <- sample(2,nrow(mydata2),replace=TRUE,prob=c(.8,.2)) # "idx" is an index, which tells us which observations were assigned to the training (idx=1) and validation (idx=2) samples 
+table(idx) # confirm 80/20 split
+```
+###### Modeling
+### SVM
+```{r}
+
+model_svm<-svm(formula=income~age+education.num+occupation, # model formula 
+               data=mydata2[idx==1,],                   # dataset
+               kernel="linear", # linear decision boundary
+               cost=1,        # there are paremeters that are used to tune the model 
+               scale=FALSE)
+
+model_svm
+```
+```{r}
+#plot(model_svm, mydata2,age~education.num~occupation)
+```
+
+
+## Tuning
+```{r}
+
+```
+
+
+## Validating
+```{r}
+
+```
+>>>>>>> 95ced096e9933f96c25b04afbb7acdaf78b01b68
 
 # k-fold Cross-validation 
 ```{r}
