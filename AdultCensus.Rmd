@@ -9,7 +9,7 @@ output: word_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## R Markdownuuuy
+## R Markdown
 
 This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
 
@@ -23,10 +23,17 @@ rm(list = ls())
 
 ##Libraries and packages
 ```{r}
+install.packages("caret")
+```
+
+
+```{r}
 install.packages("e1071")
 library(e1071)
 library(tidyverse)
 library(ggplot2)
+install.packages("pROC")
+library(pROC)
 ```
 
 ##Read file and view data
@@ -73,6 +80,8 @@ mydata%>%
 ## Remove missing values
 ```{r}
 mydata2<-na.omit(mydata)
+
+head(mydata2)
 ```
 
 ## Data Visualization
@@ -127,71 +136,80 @@ mydata2%>%
 ## education vs income
 mydata2%>%
   ggplot(aes(x=education,fill=income))+geom_bar(size=5)+coord_flip()
-```
-#
-```{r}
-set.seed(1)   # set a random seed 
-index <- sample(30162,6000) # random selection of indices. 
-test <-mydata2[index,]       # save 20% as a test dataset
-training <- mydata2[-index,]   # save the rest as a training set
+
+## native country
+mydata2%>%
+  ggplot(aes(x=native.country,fill=income))+geom_bar(size=5)+coord_flip()
+##consider removing all other countries?
 ```
 
-#Tree-based classification model
+## Looking at target variable
 ```{r}
-library(rpart)
-library(rpart.plot)
-training_model<-rpart(income~.,           # model formula
-                data=training,                     # dataset
-                method="class",                   # "class" indicates a classification tree model 
-                control=rpart.control(cp=0.03))   # tree control parameters. 
-rpart.plot(training_model)   # tree plot
-```
-# predicting probabilities/class labels for test data
-Now, the model will be evaluated on a test data. For this, we  apply the model to the test dataset and get the predicted values. It can be done by providing a dataset name with a model to `predict()` function. 
-```{r}
-test$ct_pred_prob<-predict(training_model,test)[,2]
-test$ct_pred_class<-predict(training_model,test,type="class")
-test
-```
-# k-fold Cross-validation 
-```{r}
-set.seed(1)   # set a random seed 
-full_tree<-rpart(income~.,
-                     data=training, 
-                     method="class",
-                     control=rpart.control(cp=0))
+## check how many records have income >50k and how many do not
+table(mydata2$income)
+## we see that most of the records indicate income of <=50k, only ~25% have >50k
 
-rpart.plot(full_tree)
-```
+mydata2%>%
+  ggplot(aes(x=income, fill=education))+geom_bar(size=5)
 
+mydata2%>%
+  ggplot(aes(x=income, fill=sex))+geom_bar(size=5)
+## men are a bigger % of the high earners than females
+
+```
+###### Split data into training and testing set
 
 ```{r}
-printcp(full_tree)   # xerror, xstd - cross validation results  
+set.seed(1)
+index <- sample(30162, 6000) # random selection of indices.
+test <- mydata2[index,]       # save 20% as a test dataset
+training <-mydata2[-index,]   # save the rest as a training set
+```
+
+##### SVM
+
+```{r}
+plot(mydata2)
+```
+
+## set up initial model
+```{r}
+
+## significant attributes from glm ##income~age+workclass+education+marital.status+occupation+sex+relationship+capital.gain+capital.loss+hours.per.week
+
+model_svm<-svm(formula=income~age+hours.per.week, 
+               data=training,                   # dataset
+               kernel="linear", # linear decision boundary
+               cost=1,        # there are paremeters that are used to tune the model 
+               scale=FALSE)
+
+model_svm
+## model takes really long to converge
 ```
 
 ```{r}
-plotcp(full_tree)    
+## plot model results
+
+plot(model_svm,training, age~hours.per.week)
+
+## full model: age~workclass~education~marital.status~occupation+sex~relationship~capital.gain~capital.loss~hours.per.week
+## Cannot plot since it is not 2 dimensional
 ```
 
 
 ```{r}
-min_xerror<-full_tree$cptable[which.min(full_tree$cptable[,"xerror"]),]
-min_xerror
-
-# prune tree with minimum cp value
-min_xerror_tree<-prune(full_tree, cp=min_xerror[1])
-rpart.plot(min_xerror_tree)
+##View support vectors
+head(model_svm$index)  #the support vectors of the model
 ```
 
-Let's consider mim_xerror_tree as the best pruned tree, and get the prediction. 
 ```{r}
-bp_tree<-min_xerror_tree
-test$ct_bp_pred_prob<-predict(bp_tree,test)[,2]
-test$ct_bp_pred_class=predict(bp_tree,test,type="class")
+## Decision values are the distance between the observation and the decision boundary. The positive fitted value indicate one class, and negative value indicates the other class. 
 
-table(test$ct_bp_pred_class==test$income)  # error rate
-table(test$ct_bp_pred_class,test$income, dnn=c("predicted","actual"))  # confusion table on test data
+dv<-data.frame(model_svm$decision.values) ## need dataframe to plot using ggplot
+ggplot(dv, aes(x=model_svm$decision.values)) + 
+  geom_histogram(binwidth=1000, colour="black",fill="white")
 ```
+<<<<<<< HEAD
 accuracy = 5137 / (5137 + 863) = 0.8562
 
 ```{r}
@@ -210,57 +228,89 @@ Conclusion: As adding more complexity does not improve the performance much, we 
 
 <<<<<<< HEAD
 Check the accuracy of the model by comparing the the actual values (income) and the predicted values (ct_pred_class).
+=======
+>>>>>>> a7f46d98d716ad1506ab651ba27ef3ee92fb5282
 ```{r}
-table(test$income==test$ct_pred_class)    
+# predicted (fitted) class
+head(model_svm$fitted)  
+
+tail(model_svm$fitted)
 ```
+<<<<<<< HEAD
 accuracy = 5037 / (5037 + 963) = 0.8395
 =======
 ## Looking at target variable
-```{r}
-## check how many records have income >50k and how many do not
-table(mydata2$income)
-## we see that most of the records indicate income of <=50k, only ~25% have >50k
-
-mydata2%>%
-  ggplot(aes(x=income, fill=education))+geom_bar(size=5)
-
-mydata2%>%
-  ggplot(aes(x=income, fill=sex))+geom_bar(size=5)
-## men are a bigger % of the high earners than females
-
-```
-###### Split data into training and testing set
-```{r}
-set.seed(1)
-idx <- sample(2,nrow(mydata2),replace=TRUE,prob=c(.8,.2)) # "idx" is an index, which tells us which observations were assigned to the training (idx=1) and validation (idx=2) samples 
-table(idx) # confirm 80/20 split
-```
-###### Modeling
-### SVM
-```{r}
-
-model_svm<-svm(formula=income~age+education.num+occupation, # model formula 
-               data=mydata2[idx==1,],                   # dataset
-               kernel="linear", # linear decision boundary
-               cost=1,        # there are paremeters that are used to tune the model 
-               scale=FALSE)
-
-model_svm
-```
-```{r}
-#plot(model_svm, mydata2,age~education.num~occupation)
-```
-
+=======
 
 ## Tuning
+We can tune SVM models using `tune` function. Set a range of search values for the parameter. It builds an SVM model for each possible combination of parameter values and evaluate accuracy. It will return the parameter combination that yields the best accuracy. 
+>>>>>>> a7f46d98d716ad1506ab651ba27ef3ee92fb5282
 ```{r}
+ # find a best set of parameters for the svm model
+svm_tune <- tune(svm,                                      
+                 income~age+hours.per.week,         
+                 data = training,
+                 kernel="linear", 
+                 ranges = list(cost = 10^(-5:0))) # specifying the ranges of parameters  
+                                                  # in the penalty function to be examined
+                                                  # you may wish to increase the search space like 
+                                                  
+
+print(svm_tune)                              # best parameters for the model
+
 
 ```
 
-
-## Validating
 ```{r}
+best_svm_mod <- svm_tune$best.model
+test$svm_pred_class <- predict(best_svm_mod, test) # save the predicted class by the svm model
+test$svm_dv<-as.numeric(attr(predict(best_svm_mod, test, decision.values = TRUE),"decision.values"))
 
+table(test$income,test$svm_pred_class)
 ```
->>>>>>> 95ced096e9933f96c25b04afbb7acdaf78b01b68
 
+## Logistic Regression
+```{r}
+# build a logit regression model  
+logit_model<-glm(income~age+workclass+education+education.num+marital.status+occupation+relationship+race+sex+capital.gain+capital.loss+hours.per.week+native.country,  
+                 family="binomial",               # specifying error distribution
+                 data=training)                    # dataset
+summary(logit_model)
+```
+
+```{r}
+## Make prediction on training dataset
+training$logit_pred_prob<-predict(logit_model,training,type="response") # get predicted probabilities
+training$logit_pred_class<-ifelse(training$logit_pred_prob>0.5,">50K","<=50K") 
+
+## Confusion Matrix 
+table(training$income,training$logit_pred_class)
+
+## Training accuracy = (16876+3661)/24162 = 85%
+```
+
+```{r}
+## Make prediction on test dataset
+test$logit_pred_prob<-predict(logit_model,test,type="response")
+test$logit_pred_class<-ifelse(test$logit_pred_prob>0.5,">50K","<=50K") 
+
+## Confusion accuracy
+table(test$income,test$logit_pred_class,dnn=c("Predicted","Actual"))
+
+
+## Testing accuracy = (4140+915)/6000 = 84.25%
+```
+
+## Performance Visualization with ROC
+```{r}
+#ct_roc<-roc(test$default,test$ct_pred_prob,auc=TRUE)
+#plot(ct_roc,print.auc=TRUE,col="blue")
+
+#rf_roc<-roc(test$default,test$rf_pred_prob,auc=TRUE)
+#plot(rf_roc,print.auc=TRUE,print.auc.y=.4,col="green", add=TRUE)
+
+#logit_roc<-roc(test$income,test$logit_pred_prob,auc=TRUE)
+#plot(logit_roc,print.auc=TRUE,print.auc.y=.3, col="red",add=TRUE)
+
+#svm_roc<-roc(test$incomet,test$svm_dv,auc=TRUE)
+#plot(svm_roc,print.auc=TRUE,print.auc.y=.2, col="black",add=TRUE)
