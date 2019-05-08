@@ -27,6 +27,8 @@ install.packages("e1071")
 library(e1071)
 library(tidyverse)
 library(ggplot2)
+install.packages("pROC")
+library(pROC)
 ```
 
 ##Read file and view data
@@ -73,6 +75,8 @@ mydata%>%
 ## Remove missing values
 ```{r}
 mydata2<-na.omit(mydata)
+
+head(mydata2)
 ```
 
 ## Data Visualization
@@ -149,11 +153,24 @@ set.seed(1)
 idx <- sample(2,nrow(mydata2),replace=TRUE,prob=c(.8,.2)) # "idx" is an index, which tells us which observations were assigned to the training (idx=1) and validation (idx=2) samples 
 table(idx) # confirm 80/20 split
 ```
-###### Modeling
-### SVM
+
+##### SVM
 ```{r}
 
-model_svm<-svm(formula=income~age+education.num+occupation, # model formula 
+reg<- glm(income~age+workclass+education+education.num+marital.status+occupation+relationship+race+sex+capital.gain+capital.loss+hours.per.week+native.country, family="binomial", data=mydata2[idx==1,])
+summary(reg)
+
+```
+```{r}
+plot(mydata2)
+```
+
+## set up initial model
+```{r}
+
+
+model_svm<-svm(formula=income~age+workclass+marital.status+occupation+sex+capital.gain+capital.loss+hours.per.week, ## these two are the most linearly seperable
+               #+marital.status+occupation+relationship+sex+hours.per.week, # model formula 
                data=mydata2[idx==1,],                   # dataset
                kernel="linear", # linear decision boundary
                cost=1,        # there are paremeters that are used to tune the model 
@@ -161,14 +178,54 @@ model_svm<-svm(formula=income~age+education.num+occupation, # model formula
 
 model_svm
 ```
+## plot model results
 ```{r}
-#plot(model_svm, mydata2,age~education.num~occupation)
+
+
+plot(model_svm,mydata2[idx==1,],age~capital.gain~workclass~marital.status~occupation~sex~capital.loss~hours.per.week)
+     
+```
+```{r}
+head(model_svm$index)  #the support vectors of the model
+```
+## Decision values are the distance between the observation and the decision boundary. The positive fitted value indicate one class, and negative value indicates the other class. 
+```{r}
+dv<-data.frame(model_svm$decision.values) ## need dataframe to plot using ggplot
+ggplot(dv, aes(x=model_svm$decision.values)) + 
+  geom_histogram(binwidth=1000, colour="black",fill="white")
+```
+```{r}
+head(model_svm$fitted)  # predicted (fitted) class
+
+## Predict values using svm model
+predicted_svm<-predict(model_svm,mydata2,decision.values = TRUE) 
+
+head(attr(predicted_svm, "decision.values"))
+```
+
+```{r}
+mydata2$svm_pred_class <- predict(model_svm, mydata2) 
+mydata2$svm_dv<-attr(predicted_svm, "decision.values")
 ```
 
 
 ## Tuning
+## SVM
+We can tune SVM models using `tune` function. Set a range of search values for the parameter. It builds an SVM model for each possible combination of parameter values and evaluate accuracy. It will return the parameter combination that yields the best accuracy. 
 ```{r}
+svm_tune <- tune(svm,                            # find a best set of parameters for the svm model           
+                 income~age+workclass+marital.status+occupation+sex+capital.gain+capital.loss+hours.per.week,         
+                 data = mydata2[idx==1,],
+                 kernel="linear", 
+                 ranges = list(cost = 10^(-5:0))) # specifying the ranges of parameters  
+                                                  # in the penalty function to be examined
+                                                  # you may wish to increase the search space like 
+                                                  
 
+print(svm_tune)                              # best parameters for the model
+best_svm_mod <- svm_tune$best.model
+test$svm_pred_class <- predict(best_svm_mod, test) # save the predicted class by the svm model
+test$svm_dv<-as.numeric(attr(predict(best_svm_mod, test, decision.values = TRUE),"decision.values"))
 ```
 
 
@@ -177,4 +234,20 @@ model_svm
 
 ```
 
+## Performance Visualization with ROC
+
+```{r}
+
+ct_roc<-roc(test$default,test$ct_pred_prob,auc=TRUE)
+plot(ct_roc,print.auc=TRUE,col="blue")
+
+rf_roc<-roc(test$default,test$rf_pred_prob,auc=TRUE)
+plot(rf_roc,print.auc=TRUE,print.auc.y=.4,col="green", add=TRUE)
+
+
+logit_roc<-roc(test$default,test$logit_pred_prob,auc=TRUE)
+plot(logit_roc,print.auc=TRUE,print.auc.y=.3, col="red",add=TRUE)
+
+svm_roc<-roc(test$default,test$svm_dv,auc=TRUE)
+plot(svm_roc,print.auc=TRUE,print.auc.y=.2, col="black",add=TRUE)
 
