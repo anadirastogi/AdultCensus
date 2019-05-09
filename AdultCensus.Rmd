@@ -23,16 +23,17 @@ rm(list = ls())
 
 ##Libraries and packages
 ```{r}
-install.packages("caret")
+#install.packages("caret")
+library(caret)
 ```
 
 
 ```{r}
-install.packages("e1071")
+#install.packages("e1071")
 library(e1071)
 library(tidyverse)
 library(ggplot2)
-install.packages("pROC")
+#install.packages("pROC")
 library(pROC)
 ```
 
@@ -288,7 +289,6 @@ dv<-data.frame(model_svm$decision.values) ## need dataframe to plot using ggplot
 ggplot(dv, aes(x=model_svm$decision.values)) + 
   geom_histogram(binwidth=1000, colour="black",fill="white")
 ```
-<<<<<<< HEAD
 accuracy = 5137 / (5137 + 863) = 0.8562
 
 ```{r}
@@ -305,25 +305,21 @@ table(test$ct_ad_pred_class,test$income, dnn=c("predicted","actual"))  # confusi
 
 Conclusion: As adding more complexity does not improve the performance much, we will choose cp as 0.004. The tree result will be manageable to understand, and the performance seems to be great.
 
-<<<<<<< HEAD
 Check the accuracy of the model by comparing the the actual values (income) and the predicted values (ct_pred_class).
-=======
->>>>>>> a7f46d98d716ad1506ab651ba27ef3ee92fb5282
+
 ```{r}
 # predicted (fitted) class
 head(model_svm$fitted)  
 
 tail(model_svm$fitted)
 ```
-<<<<<<< HEAD
 accuracy = 5037 / (5037 + 963) = 0.8395
-=======
+
 ## Looking at target variable
-=======
+
 
 ## Tuning
 We can tune SVM models using `tune` function. Set a range of search values for the parameter. It builds an SVM model for each possible combination of parameter values and evaluate accuracy. It will return the parameter combination that yields the best accuracy. 
->>>>>>> a7f46d98d716ad1506ab651ba27ef3ee92fb5282
 ```{r}
  # find a best set of parameters for the svm model
 svm_tune <- tune(svm,                                      
