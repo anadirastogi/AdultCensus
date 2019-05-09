@@ -238,6 +238,8 @@ test$ct_ad_pred_class=predict(ad_model,test,type="class")
 table(test$ct_ad_pred_class==test$income)  # error rate
 table(test$ct_ad_pred_class,test$income, dnn=c("predicted","actual"))
 ```
+accuracy: 5100 / 6000 = 0.85
+
 Conclusion: We dicide to choose cp as 0.004. Under this value, the tree result is easily managebale and the tree performance seems to be great.
 
 ##### SVM
