@@ -431,16 +431,11 @@ plot(logit_roc,print.auc=TRUE,print.auc.y=.3, col="red")
 set.seed(1)
 #install.packages("randomForest")
 library(randomForest)
-rf_model<-randomForest(default~age+workclass+fnlwgt+education.num+marital.status+occupation+relationship+race+sex+capital.loss+capital.gain+hours.per.week+native.country,              # model formula
-                       data=Default,ntree=1000, cutoff=c(0.5,0.5))
+rf_model<-randomForest(income~age+workclass+fnlwgt+education+education.num+marital.status+occupation+relationship+race+sex+capital.loss+capital.gain+hours.per.week+native.country,              
+                       # model formula
+                       data=mydata2,ntree=1000, cutoff=c(0.5,0.5))
 ```
 
-```{r}
-set.seed(1)
-test_selection <- sample(30162, 6000) # random selection of indices.
-test_rfm <- mydata2[test_selection,]       # save 20% as a test dataset
-training_rfm <-mydata2[test_selection,]   # save the rest as a training set 
-```
 
 
 ```{r}
@@ -448,5 +443,30 @@ training_rfm <-mydata2[test_selection,]   # save the rest as a training set
 head(rf_model$votes)       # indicates the % of trees that voted for each class
 head(rf_model$predicted)   # the class favored by more trees (i.e. majority vote wins) 
 ```
+
+```{r}
+varImpPlot(rf_model)  # importance of variables 
 ```
 
+```{r}
+head(rf_model$vote)
+
+mydata2$rf_vote<-predict(rf_model,type="prob")[,2]
+head(mydata2)
+```
+```{r}
+## Make prediction on test dataset
+mydata2$rf_model_prob<-predict(rf_model,mydata2,type="response")
+
+## Confusion Matrix 
+table(mydata2$income,mydata2$rf_model_prob,dnn=c("Predicted","Actual"))
+
+##Calculate the accuracy:(22189+6620)/32561
+print((22189+6620)/32561)
+```
+So the accuracy level of Random Forest Model is 88.47701%.
+```{r}
+## Performance Visualization with ROC
+rd_model_roc<-roc(mydata2$income,mydata2$rf_vote,auc=TRUE)
+plot(rd_model_roc,print.auc=TRUE,print.auc.y=.3, col="red")
+```
