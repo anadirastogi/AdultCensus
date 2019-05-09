@@ -347,16 +347,39 @@ table(test$income,test$svm_pred_class)
 
 ## Logistic Regression
 ```{r}
+
+```
+
+```
+#### Logistic Regression
+```{r}
 # build a logit regression model  
 logit_model<-glm(income~age+workclass+education+education.num+marital.status+occupation+relationship+race+sex+capital.gain+capital.loss+hours.per.week+native.country,  
                  family="binomial",               # specifying error distribution
-                 data=training)                    # dataset
+                 data=mydata2)                    # dataset
 summary(logit_model)
+
+# Make predictions
+mydata2$logit_pred_prob<-predict(logit_model,mydata2,type="response") # get predicted probabilities
+mydata2$logit_pred_class<-ifelse(mydata2$logit_pred_prob>0.5,">50K","<=50K") 
+
+## Confusion Matrix 
+table(mydata2$income,mydata2$logit_pred_class)
+
+## Model accuracy = (21016+4576)/32561 = 78.59%
 ```
 
+## Holdout validation
 ```{r}
+
+# Train model on training dataset only 
+logit_model_2<-glm(income~age+workclass+education+education.num+marital.status+occupation+relationship+race+sex+capital.gain+capital.loss+hours.per.week+native.country,  
+                 family="binomial",               # specifying error distribution
+                 data=mydata2)                    # dataset
+summary(logit_model)
+
 ## Make prediction on training dataset
-training$logit_pred_prob<-predict(logit_model,training,type="response") # get predicted probabilities
+training$logit_pred_prob<-predict(logit_model_2,training,type="response") # get predicted probabilities
 training$logit_pred_class<-ifelse(training$logit_pred_prob>0.5,">50K","<=50K") 
 
 ## Confusion Matrix 
@@ -367,7 +390,7 @@ table(training$income,training$logit_pred_class)
 
 ```{r}
 ## Make prediction on test dataset
-test$logit_pred_prob<-predict(logit_model,test,type="response")
+test$logit_pred_prob<-predict(logit_model_2,test,type="response")
 test$logit_pred_class<-ifelse(test$logit_pred_prob>0.5,">50K","<=50K") 
 
 ## Confusion accuracy
