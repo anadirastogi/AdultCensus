@@ -253,6 +253,8 @@ Conclusion: We dicide to choose cp as 0.004. Under this value, the tree result i
 ##### SVM
 
 ```{r}
+ct_roc<-roc(test$income,test$ct_ad_pred_prob,auc=TRUE)
+plot(ct_roc,print.auc=TRUE,col="blue")
 plot(mydata2)
 ```
 
