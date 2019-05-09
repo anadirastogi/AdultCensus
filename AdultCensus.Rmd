@@ -425,12 +425,28 @@ plot(logit_roc,print.auc=TRUE,print.auc.y=.3, col="red")
 #plot(svm_roc,print.auc=TRUE,print.auc.y=.2, col="black",add=TRUE)
 ```
 
-##Random forest model
+##Random Forest
+
+```{r}
+set.seed(1)
+#install.packages("randomForest")
+library(randomForest)
+rf_model<-randomForest(default~age+workclass+fnlwgt+education.num+marital.status+occupation+relationship+race+sex+capital.loss+capital.gain+hours.per.week+native.country,              # model formula
+                       data=Default,ntree=1000, cutoff=c(0.5,0.5))
+```
 
 ```{r}
 set.seed(1)
 test_selection <- sample(30162, 6000) # random selection of indices.
 test_rfm <- mydata2[test_selection,]       # save 20% as a test dataset
 training_rfm <-mydata2[test_selection,]   # save the rest as a training set 
+```
+
+
+```{r}
+#print(rf_model)
+head(rf_model$votes)       # indicates the % of trees that voted for each class
+head(rf_model$predicted)   # the class favored by more trees (i.e. majority vote wins) 
+```
 ```
 
