@@ -127,6 +127,13 @@ mydata2%>%
 
 ```
 ```{r}
+##Marriage vs age
+mydata2%>%
+  ggplot(aes(x=age,fill=marital.status))+geom_histogram(binwidth=1,  position="stack")
+```
+
+
+```{r}
 ## Categorical variables
 
 ## occupation vs income
@@ -401,6 +408,12 @@ table(test$income,test$logit_pred_class,dnn=c("Predicted","Actual"))
 ```
 
 ## Performance Visualization with ROC
+```{r}
+logit_roc<-roc(test$income,test$logit_pred_prob,auc=TRUE)
+plot(logit_roc,print.auc=TRUE,print.auc.y=.3, col="red")
+```
+
+
 ```{r}
 #ct_roc<-roc(test$default,test$ct_pred_prob,auc=TRUE)
 #plot(ct_roc,print.auc=TRUE,col="blue")
