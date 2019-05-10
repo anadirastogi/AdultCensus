@@ -171,6 +171,7 @@ index <- sample(30162, 6000) # random selection of indices.
 test <- mydata2[index,]       # save 20% as a test dataset
 training <-mydata2[-index,]   # save the rest as a training set
 ```
+
 #Tree-based classification model
 ```{r}
 library(rpart)
@@ -181,6 +182,7 @@ training_model<-rpart(income~.,           # model formula
                 control=rpart.control(cp=0.03))   # tree control parameters. 
 rpart.plot(training_model)   # tree plot
 ```
+
 # predicting probabilities/class labels for test data
 Now, the model will be evaluated on a test data. For this, we  apply the model to the test dataset and get the predicted values. It can be done by providing a dataset name with a model to `predict()` function. 
 ```{r}
@@ -202,9 +204,8 @@ full_tree<-rpart(income~.,
                      data=training, 
                      method="class",
                      control=rpart.control(cp=0))
-rpart.plot(full_tree)
+#rpart.plot(full_tree)
 ```
-
 
 ```{r}
 printcp(full_tree)   # xerror, xstd - cross validation results  
@@ -213,7 +214,6 @@ printcp(full_tree)   # xerror, xstd - cross validation results
 ```{r}
 plotcp(full_tree)    
 ```
-
 
 ```{r}
 min_xerror<-full_tree$cptable[which.min(full_tree$cptable[,"xerror"]),]
@@ -349,16 +349,12 @@ test$svm_dv<-as.numeric(attr(predict(best_svm_mod, test, decision.values = TRUE)
 table(test$income,test$svm_pred_class)
 ```
 
-## Logistic Regression
-```{r}
-
-```
-
-```
 #### Logistic Regression
+
+## Initial model
 ```{r}
 # build a logit regression model  
-logit_model<-glm(income~age+workclass+education+education.num+marital.status+occupation+relationship+race+sex+capital.gain+capital.loss+hours.per.week+native.country,  
+logit_model<-glm(income~.,  
                  family="binomial",               # specifying error distribution
                  data=mydata2)                    # dataset
 summary(logit_model)
@@ -377,9 +373,9 @@ table(mydata2$income,mydata2$logit_pred_class)
 ```{r}
 
 # Train model on training dataset only 
-logit_model_2<-glm(income~age+workclass+education+education.num+marital.status+occupation+relationship+race+sex+capital.gain+capital.loss+hours.per.week+native.country,  
+logit_model_2<-glm(income~age+workclass+fnlwgt+education+education.num+marital.status+occupation+relationship+race+sex+capital.gain+capital.loss+hours.per.week+native.country,  
                  family="binomial",               # specifying error distribution
-                 data=mydata2)                    # dataset
+                 data=training)                    # dataset
 summary(logit_model)
 
 ## Make prediction on training dataset
@@ -411,21 +407,6 @@ plot(logit_roc,print.auc=TRUE,print.auc.y=.3, col="red")
 ```
 
 
-
-```{r}
-#ct_roc<-roc(test$default,test$ct_pred_prob,auc=TRUE)
-#plot(ct_roc,print.auc=TRUE,col="blue")
-
-#rf_roc<-roc(test$default,test$rf_pred_prob,auc=TRUE)
-#plot(rf_roc,print.auc=TRUE,print.auc.y=.4,col="green", add=TRUE)
-
-#logit_roc<-roc(test$income,test$logit_pred_prob,auc=TRUE)
-#plot(logit_roc,print.auc=TRUE,print.auc.y=.3, col="red",add=TRUE)
-
-#svm_roc<-roc(test$incomet,test$svm_dv,auc=TRUE)
-#plot(svm_roc,print.auc=TRUE,print.auc.y=.2, col="black",add=TRUE)
-```
-
 ##Random Forest
 
 ```{r}
@@ -436,7 +417,6 @@ rf_model<-randomForest(income~age+workclass+fnlwgt+education+education.num+marit
                        # model formula
                        data=mydata2,ntree=1000, cutoff=c(0.5,0.5))
 ```
-
 
 
 ```{r}
@@ -466,11 +446,7 @@ table(mydata2$income,mydata2$rf_model_prob,dnn=c("Predicted","Actual"))
 print((22189+6620)/32561)
 ```
 So the accuracy level of Random Forest Model is 88.47701%.
-```{r}
-## Performance Visualization with ROC
-rd_model_roc<-roc(mydata2$income,mydata2$rf_vote,auc=TRUE)
-plot(rd_model_roc,print.auc=TRUE,print.auc.y=.3, col="red")
-```
+
 ### hold-out validation vs. OOB errors
 Following a similar process, we can validate the performance of a random forest model. 
 ```{r}
@@ -483,4 +459,25 @@ mydata2$rf_pred_class<-predict(rf_model,mydata2,type="class")
 glimpse(mydata2)
 
 table(mydata2$income==mydata2$rf_pred_class)  
+```
+
+```{r}
+## Performance Visualization with ROC
+rd_model_roc<-roc(mydata2$income,mydata2$rf_vote,auc=TRUE)
+plot(rd_model_roc,print.auc=TRUE,print.auc.y=.3, col="red")
+```
+
+## Create ROC curve for all classifiers
+```{r}
+#ct_roc<-roc(test$default,test$ct_pred_prob,auc=TRUE)
+#plot(ct_roc,print.auc=TRUE,col="blue")
+
+#rf_roc<-roc(test$default,test$rf_pred_prob,auc=TRUE)
+#plot(rf_roc,print.auc=TRUE,print.auc.y=.4,col="green", add=TRUE)
+
+#logit_roc<-roc(test$income,test$logit_pred_prob,auc=TRUE)
+#plot(logit_roc,print.auc=TRUE,print.auc.y=.3, col="red",add=TRUE)
+
+#svm_roc<-roc(test$incomet,test$svm_dv,auc=TRUE)
+#plot(svm_roc,print.auc=TRUE,print.auc.y=.2, col="black",add=TRUE)
 ```
