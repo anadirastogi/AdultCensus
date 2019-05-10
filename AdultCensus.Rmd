@@ -2,7 +2,9 @@
 title: "Adult Census Project"
 author: "Group 4 (Adi, Pam, Jennifer, Jason)"
 date: "April 19, 2019"
-output: word_document
+output:
+  html_document: default
+  word_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -249,9 +251,7 @@ Conclusion: We dicide to choose cp as 0.004. Under this value, the tree result i
 ##### SVM
 
 ```{r}
-ct_roc<-roc(test$income,test$ct_ad_pred_prob,auc=TRUE)
-plot(ct_roc,print.auc=TRUE,col="blue")
-plot(mydata2)
+plot(mydata2, col = c("red", "blue"))
 ```
 
 ## set up initial model
@@ -259,23 +259,21 @@ plot(mydata2)
 
 ## significant attributes from glm ##income~age+workclass+education+marital.status+occupation+sex+relationship+capital.gain+capital.loss+hours.per.week
 
-model_svm<-svm(formula=income~age+hours.per.week, 
+#training1<-training
+#test1<-test
+
+
+#training1$income[training1$income == '>50K'] <- 1
+#training1$income[training1$income == '<=50K'] <- 0
+
+model_svm<-svm(formula=income~., 
                data=training,                   # dataset
                kernel="linear", # linear decision boundary
-               cost=1,        # there are paremeters that are used to tune the model 
+               cost=0.1,        # there are paremeters that are used to tune the model 
                scale=FALSE)
 
 model_svm
 ## model takes really long to converge
-```
-
-```{r}
-## plot model results
-
-plot(model_svm,training, age~hours.per.week)
-
-## full model: age~workclass~education~marital.status~occupation+sex~relationship~capital.gain~capital.loss~hours.per.week
-## Cannot plot since it is not 2 dimensional
 ```
 
 
@@ -289,33 +287,23 @@ head(model_svm$index)  #the support vectors of the model
 
 dv<-data.frame(model_svm$decision.values) ## need dataframe to plot using ggplot
 ggplot(dv, aes(x=model_svm$decision.values)) + 
-  geom_histogram(binwidth=1000, colour="black",fill="white")
+  geom_histogram(binwidth=10000, colour="black",fill="white")
 ```
-accuracy = 5137 / (5137 + 863) = 0.8562
 
 ```{r}
-ad_model<-rpart(income~.,           # model formula
-                data=training,                     # dataset
-                method="class",                  
-                control=rpart.control(cp=0.004))
-rpart.plot(ad_model)   # tree plot
-test$ct_ad_pred_prob<-predict(ad_model,test)[,2]
-test$ct_ad_pred_class<-predict(ad_model,test,type="class")
-table(test$ct_ad_pred_class==test$income)  # error rate
-table(test$ct_ad_pred_class,test$income, dnn=c("predicted","actual"))  # confusion table on test data
+head(model_svm$fitted)  # predicted (fitted) class
+predicted_svm<-predict(model_svm,training,decision.values = TRUE)
+head(attr(predicted_svm, "decision.values"))
 ```
-
-Conclusion: As adding more complexity does not improve the performance much, we will choose cp as 0.004. The tree result will be manageable to understand, and the performance seems to be great.
-
-Check the accuracy of the model by comparing the the actual values (income) and the predicted values (ct_pred_class).
 
 ```{r}
-# predicted (fitted) class
-head(model_svm$fitted)  
 
-tail(model_svm$fitted)
+test$svm_pred_class <- predict(model_svm, test) 
+table(test$svm_pred_class==test$income)  # error rate
+table(test$svm_pred_class,test$income, dnn=c("predicted","actual"))
+(3685+510)/6000
 ```
-accuracy = 5037 / (5037 + 963) = 0.8395
+Accuracy = 79.8%
 
 ## Looking at target variable
 
@@ -325,7 +313,7 @@ We can tune SVM models using `tune` function. Set a range of search values for t
 ```{r}
  # find a best set of parameters for the svm model
 svm_tune <- tune(svm,                                      
-                 income~age+hours.per.week,         
+                 income~.,         
                  data = training,
                  kernel="linear", 
                  ranges = list(cost = 10^(-5:0))) # specifying the ranges of parameters  
@@ -345,13 +333,7 @@ test$svm_dv<-as.numeric(attr(predict(best_svm_mod, test, decision.values = TRUE)
 
 table(test$income,test$svm_pred_class)
 ```
-
-## Logistic Regression
-```{r}
-
-```
-
-```
+Accuracy = (4191+876)/6000 = 84.45%
 #### Logistic Regression
 ```{r}
 # build a logit regression model  
@@ -401,27 +383,6 @@ table(test$income,test$logit_pred_class,dnn=c("Predicted","Actual"))
 ## Testing accuracy = (4140+915)/6000 = 84.25%
 ```
 
-## Performance Visualization with ROC
-```{r}
-logit_roc<-roc(test$income,test$logit_pred_prob,auc=TRUE)
-plot(logit_roc,print.auc=TRUE,print.auc.y=.3, col="red")
-```
-
-
-
-```{r}
-#ct_roc<-roc(test$default,test$ct_pred_prob,auc=TRUE)
-#plot(ct_roc,print.auc=TRUE,col="blue")
-
-#rf_roc<-roc(test$default,test$rf_pred_prob,auc=TRUE)
-#plot(rf_roc,print.auc=TRUE,print.auc.y=.4,col="green", add=TRUE)
-
-#logit_roc<-roc(test$income,test$logit_pred_prob,auc=TRUE)
-#plot(logit_roc,print.auc=TRUE,print.auc.y=.3, col="red",add=TRUE)
-
-#svm_roc<-roc(test$incomet,test$svm_dv,auc=TRUE)
-#plot(svm_roc,print.auc=TRUE,print.auc.y=.2, col="black",add=TRUE)
-```
 
 ##Random Forest
 
@@ -451,8 +412,7 @@ head(rf_model$vote)
 
 mydata2$rf_vote<-predict(rf_model,type="prob")[,2]
 head(mydata2)
-```
-```{r}
+
 ## Make prediction on test dataset
 mydata2$rf_model_prob<-predict(rf_model,mydata2,type="response")
 
@@ -468,3 +428,26 @@ So the accuracy level of Random Forest Model is 88.47701%.
 rd_model_roc<-roc(mydata2$income,mydata2$rf_vote,auc=TRUE)
 plot(rd_model_roc,print.auc=TRUE,print.auc.y=.3, col="red")
 ```
+
+## Performance Visualization with ROC
+```{r}
+logit_roc<-roc(test$income,test$logit_pred_prob,auc=TRUE)
+plot(logit_roc,print.auc=TRUE,print.auc.y=.3, col="red")
+```
+
+
+
+```{r}
+#ct_roc<-roc(test$default,test$ct_pred_prob,auc=TRUE)
+#plot(ct_roc,print.auc=TRUE,col="blue")
+
+#rf_roc<-roc(test$default,test$rf_pred_prob,auc=TRUE)
+#plot(rf_roc,print.auc=TRUE,print.auc.y=.4,col="green", add=TRUE)
+
+#logit_roc<-roc(test$income,test$logit_pred_prob,auc=TRUE)
+#plot(logit_roc,print.auc=TRUE,print.auc.y=.3, col="red",add=TRUE)
+
+#svm_roc<-roc(test$incomet,test$svm_dv,auc=TRUE)
+#plot(svm_roc,print.auc=TRUE,print.auc.y=.2, col="black",add=TRUE)
+```
+
