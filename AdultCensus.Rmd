@@ -50,7 +50,7 @@ head(mydata)
 ##Save dataset in tidy way 
 ```{r}
 mydata<-as_tibble(mydata)
-View(mydata)
+#View(mydata)
 ```
 
 ##Check for null values and count the number of null values
@@ -163,8 +163,8 @@ mydata2%>%
 ## men are a bigger % of the high earners than females
 
 ```
-###### Split data into training and testing set
 
+###### Split data into training and testing set
 ```{r}
 set.seed(1)
 index <- sample(30162, 6000) # random selection of indices.
@@ -357,31 +357,37 @@ table(test$income,test$svm_pred_class)
 logit_model<-glm(income~.,  
                  family="binomial",               # specifying error distribution
                  data=mydata2)                    # dataset
+
 summary(logit_model)
 
 # Make predictions
 mydata2$logit_pred_prob<-predict(logit_model,mydata2,type="response") # get predicted probabilities
-mydata2$logit_pred_class<-ifelse(mydata2$logit_pred_prob>0.5,">50K","<=50K") 
+mydata2$logit_pred_class<-ifelse(mydata2$logit_pred_prob>0.5,">50K","<=50K")
+```
 
+
+```{r}
 ## Confusion Matrix 
 table(mydata2$income,mydata2$logit_pred_class)
 
-## Model accuracy = (21016+4576)/32561 = 78.59%
+## Model accuracy = (21052+4591)/32561 = 78.75%
 ```
 
 ## Holdout validation
 ```{r}
-
 # Train model on training dataset only 
 logit_model_2<-glm(income~age+workclass+fnlwgt+education+education.num+marital.status+occupation+relationship+race+sex+capital.gain+capital.loss+hours.per.week+native.country,  
                  family="binomial",               # specifying error distribution
                  data=training)                    # dataset
-summary(logit_model)
+
+summary(logit_model_2)
 
 ## Make prediction on training dataset
 training$logit_pred_prob<-predict(logit_model_2,training,type="response") # get predicted probabilities
-training$logit_pred_class<-ifelse(training$logit_pred_prob>0.5,">50K","<=50K") 
+training$logit_pred_class<-ifelse(training$logit_pred_prob>0.5,">50K","<=50K")
+```
 
+```{r}
 ## Confusion Matrix 
 table(training$income,training$logit_pred_class)
 
@@ -391,11 +397,12 @@ table(training$income,training$logit_pred_class)
 ```{r}
 ## Make prediction on test dataset
 test$logit_pred_prob<-predict(logit_model_2,test,type="response")
-test$logit_pred_class<-ifelse(test$logit_pred_prob>0.5,">50K","<=50K") 
+test$logit_pred_class<-ifelse(test$logit_pred_prob>0.5,">50K","<=50K")
+```
 
+```{r}
 ## Confusion accuracy
 table(test$income,test$logit_pred_class,dnn=c("Predicted","Actual"))
-
 
 ## Testing accuracy = (4140+915)/6000 = 84.25%
 ```
@@ -464,7 +471,7 @@ table(mydata2$income==mydata2$rf_pred_class)
 ```{r}
 ## Performance Visualization with ROC
 rd_model_roc<-roc(mydata2$income,mydata2$rf_vote,auc=TRUE)
-plot(rd_model_roc,print.auc=TRUE,print.auc.y=.3, col="red")
+plot(rd_model_roc,print.auc=TRUE,print.auc.y=.4, col="green")
 ```
 
 ## Create ROC curve for all classifiers
