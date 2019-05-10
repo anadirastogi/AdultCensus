@@ -3,9 +3,10 @@ title: "Adult Census Project"
 author: "Group 4 (Adi, Pam, Jennifer, Jason)"
 date: "April 19, 2019"
 output:
-  word_document: default
   html_document: default
+  pdf_document: default
   df_print: paged
+  word_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -26,12 +27,6 @@ rm(list = ls())
 
 ##Libraries and packages
 ```{r}
-#install.packages("caret")
-library(caret)
-```
-
-
-```{r}
 #install.packages("e1071")
 library(e1071)
 library(tidyverse)
@@ -41,7 +36,6 @@ library(pROC)
 ```
 
 ##Read file and view data
-
 We read the file into R and look at the data to get a sense of what we are working with.
 ```{r}
 mydata<-read.csv(file = "adult.csv")
@@ -51,11 +45,10 @@ head(mydata)
 ##Save dataset in tidy way 
 ```{r}
 mydata<-as_tibble(mydata)
-View(mydata)
+#View(mydata)
 ```
 
 ##Check for null values and count the number of null values
-
 Since there are a number of records in our data that contain "?" we first need to let R know that these are missing values
 ```{r}
 ## null values appear as a questionmark in the data
@@ -97,6 +90,7 @@ ggplot(aes(x=education.num, y=1, fill=income))+
   geom_bar(stat = "identity", position = "stack")
 
 ```
+
 ## plotting relationships of the other attribues with income (target variable)
 ```{r}
 
@@ -164,15 +158,16 @@ mydata2%>%
 ## men are a bigger % of the high earners than females
 
 ```
-###### Split data into training and testing set
 
+###### Split data into training and testing set
 ```{r}
 set.seed(1)
 index <- sample(30162, 6000) # random selection of indices.
 test <- mydata2[index,]       # save 20% as a test dataset
 training <-mydata2[-index,]   # save the rest as a training set
 ```
-#Tree-based classification model
+
+##Tree-based classification model
 ```{r}
 library(rpart)
 library(rpart.plot)
@@ -182,6 +177,7 @@ training_model<-rpart(income~age+workclass+fnlwgt+education+education.num+marita
                 control=rpart.control(cp=0.03))   # tree control parameters. 
 rpart.plot(training_model)   # tree plot
 ```
+
 # predicting probabilities/class labels for test data
 Now, the model will be evaluated on a test data. For this, we  apply the model to the test dataset and get the predicted values. It can be done by providing a dataset name with a model to `predict()` function. 
 ```{r}
@@ -192,7 +188,8 @@ test
 
 Check the accuracy of the model by comparing the the actual values (income) and the predicted values (ct_pred_class).
 ```{r}
-table(test$income==test$ct_pred_class)    
+table(test$income==test$ct_pred_class)
+table(test$income,test$ct_pred_class)
 ```
 accuracy = 5037 / (5037 + 963) = 0.8395
 
@@ -203,9 +200,8 @@ full_tree<-rpart(income~age+workclass+fnlwgt+education+education.num+marital.sta
                      data=training, 
                      method="class",
                      control=rpart.control(cp=0))
-rpart.plot(full_tree)
+#rpart.plot(full_tree)
 ```
-
 
 ```{r}
 printcp(full_tree)   # xerror, xstd - cross validation results  
@@ -214,7 +210,6 @@ printcp(full_tree)   # xerror, xstd - cross validation results
 ```{r}
 plotcp(full_tree)    
 ```
-
 
 ```{r}
 min_xerror<-full_tree$cptable[which.min(full_tree$cptable[,"xerror"]),]
@@ -263,7 +258,6 @@ test accuracy: 85%
 
 Conclusion: We dicide to choose cp as 0.004. Under this value, the tree result is easily managebale and the tree performance seems to be great.
 
-roc
 ```{r}
 plot(mydata2, col = c("red", "blue"))
 ```
@@ -292,7 +286,6 @@ model_svm
 ## model takes really long to converge
 ```
 
-
 ```{r}
 ##View support vectors
 head(model_svm$index)  #the support vectors of the model
@@ -320,9 +313,6 @@ table(test$svm_pred_class,test$income, dnn=c("predicted","actual"))
 (3685+510)/6000
 ```
 Accuracy = 69.91%
-
-## Looking at target variable
-
 
 ## Tuning
 We can tune SVM models using `tune` function. Set a range of search values for the parameter. It builds an SVM model for each possible combination of parameter values and evaluate accuracy. It will return the parameter combination that yields the best accuracy. 
@@ -353,6 +343,7 @@ Accuracy = (4187+880)/6000 = 84.45%
 
 
 #### Logistic Regression
+## Initial model
 ```{r}
 # build a logit regression model  
 logit_model<-glm(income~age+workclass+fnlwgt+education+education.num+marital.status+occupation+relationship+race+sex+capital.gain+capital.loss+hours.per.week+native.country,  
@@ -372,7 +363,6 @@ accuracy = 84.98%
 
 ## Holdout validation
 ```{r}
-
 # Train model on training dataset only 
 logit_model_2<-glm(income~age+workclass+fnlwgt+education+education.num+marital.status+occupation+relationship+race+sex+capital.gain+capital.loss+hours.per.week+native.country,  
                  family="binomial",               # specifying error distribution
@@ -401,16 +391,11 @@ table(test$income,test$logit_pred_class,dnn=c("Predicted","Actual"))
 test accuracy=84.15%
 
 ##Random Forest
-
-
-
 ```{r}
 #install.packages("randomForest")
 library(randomForest)
 rf_model<-randomForest(income~age+workclass+fnlwgt+education+education.num+marital.status+occupation+relationship+race+sex+capital.gain+capital.loss+hours.per.week+native.country,data=mydata2)
 ```
-
-
 
 ```{r}
 #print(rf_model)
@@ -459,9 +444,6 @@ Test Accuracy = (4227+978)/6000 = 86.63%
 ```
 
 ### ROC Curves
-
-
-
 ```{r}
 ct_roc<-roc(testRF$income,testRF$ct_ad_pred_prob,auc=TRUE)
 plot(ct_roc,print.auc=TRUE,col="blue")
@@ -476,5 +458,3 @@ svm_roc<-roc(testRF$income,testRF$svm_dv,auc=TRUE)
 plot(svm_roc,print.auc=TRUE,print.auc.y=.2, col="black",add=TRUE)
 ```
 
-
-aa
