@@ -5,6 +5,7 @@ date: "April 19, 2019"
 output:
   html_document: default
   word_document: default
+  df_print: paged
 ---
 
 ```{r setup, include=FALSE}
@@ -175,7 +176,7 @@ training <-mydata2[-index,]   # save the rest as a training set
 ```{r}
 library(rpart)
 library(rpart.plot)
-training_model<-rpart(income~.,           # model formula
+training_model<-rpart(income~age+workclass+fnlwgt+education+education.num+marital.status+occupation+relationship+race+sex+capital.gain+capital.loss+hours.per.week+native.country,           # model formula
                 data=training,                     # dataset
                 method="class",                   # "class" indicates a classification tree model 
                 control=rpart.control(cp=0.03))   # tree control parameters. 
@@ -198,7 +199,7 @@ accuracy = 5037 / (5037 + 963) = 0.8395
 # k-fold Cross-validation 
 ```{r}
 set.seed(1)   # set a random seed 
-full_tree<-rpart(income~.,
+full_tree<-rpart(income~age+workclass+fnlwgt+education+education.num+marital.status+occupation+relationship+race+sex+capital.gain+capital.loss+hours.per.week+native.country,
                      data=training, 
                      method="class",
                      control=rpart.control(cp=0))
@@ -226,33 +227,48 @@ rpart.plot(min_xerror_tree)
 Let's consider mim_xerror_tree as the best pruned tree, and get the prediction. 
 ```{r}
 bp_tree<-min_xerror_tree
+
+training$ct_bp_pred_prob<-predict(bp_tree,training)[,2]
+training$ct_bp_pred_class=predict(bp_tree,training,type="class")
+table(training$ct_bp_pred_class==training$income)  # error rate
+table(training$ct_bp_pred_class,training$income, dnn=c("predicted","actual"))  # confusion table
+
 test$ct_bp_pred_prob<-predict(bp_tree,test)[,2]
 test$ct_bp_pred_class=predict(bp_tree,test,type="class")
 table(test$ct_bp_pred_class==test$income)  # error rate
 table(test$ct_bp_pred_class,test$income, dnn=c("predicted","actual"))  # confusion table on test data
 ```
-accuracy = 5137 / (5137 + 863) = 0.8562
+training accuracy = 86.9%
+test accuracy = 85.62%
 
 ```{r}
-ad_model<-rpart(income~.,           # model formula
+ad_model<-rpart(income~age+workclass+fnlwgt+education+education.num+marital.status+occupation+relationship+race+sex+capital.gain+capital.loss+hours.per.week+native.country,           # model formula
                 data=training,                     # dataset
                 method="class",                   # "class" indicates a classification tree model 
                 control=rpart.control(cp=0.004))   # tree control parameters. 
 rpart.plot(ad_model)   # tree plot
+
+training$ct_ad_pred_prob<-predict(ad_model,training)[,2]
+training$ct_ad_pred_class=predict(ad_model,training,type="class")
+table(training$ct_ad_pred_class==training$income)  # error rate
+table(training$ct_ad_pred_class,training$income, dnn=c("predicted","actual"))  # confusion table
+
 test$ct_ad_pred_prob<-predict(ad_model,test)[,2]
 test$ct_ad_pred_class=predict(ad_model,test,type="class")
 table(test$ct_ad_pred_class==test$income)  # error rate
 table(test$ct_ad_pred_class,test$income, dnn=c("predicted","actual"))
 ```
-accuracy: 5100 / 6000 = 0.85
+training accuracy = 81.3%
+test accuracy: 85%
 
 Conclusion: We dicide to choose cp as 0.004. Under this value, the tree result is easily managebale and the tree performance seems to be great.
 
-##### SVM
-
+roc
 ```{r}
 plot(mydata2, col = c("red", "blue"))
 ```
+
+##### SVM
 
 ## set up initial model
 ```{r}
@@ -266,7 +282,7 @@ plot(mydata2, col = c("red", "blue"))
 #training1$income[training1$income == '>50K'] <- 1
 #training1$income[training1$income == '<=50K'] <- 0
 
-model_svm<-svm(formula=income~., 
+model_svm<-svm(formula=income~age+workclass+fnlwgt+education+education.num+marital.status+occupation+relationship+race+sex+capital.gain+capital.loss+hours.per.week+native.country, 
                data=training,                   # dataset
                kernel="linear", # linear decision boundary
                cost=0.1,        # there are paremeters that are used to tune the model 
@@ -303,7 +319,7 @@ table(test$svm_pred_class==test$income)  # error rate
 table(test$svm_pred_class,test$income, dnn=c("predicted","actual"))
 (3685+510)/6000
 ```
-Accuracy = 79.8%
+Accuracy = 69.91%
 
 ## Looking at target variable
 
@@ -313,7 +329,7 @@ We can tune SVM models using `tune` function. Set a range of search values for t
 ```{r}
  # find a best set of parameters for the svm model
 svm_tune <- tune(svm,                                      
-                 income~.,         
+                 income~age+workclass+fnlwgt+education+education.num+marital.status+occupation+relationship+race+sex+capital.gain+capital.loss+hours.per.week+native.country,
                  data = training,
                  kernel="linear", 
                  ranges = list(cost = 10^(-5:0))) # specifying the ranges of parameters  
@@ -333,11 +349,13 @@ test$svm_dv<-as.numeric(attr(predict(best_svm_mod, test, decision.values = TRUE)
 
 table(test$income,test$svm_pred_class)
 ```
-Accuracy = (4191+876)/6000 = 84.45%
+Accuracy = (4187+880)/6000 = 84.45%
+
+
 #### Logistic Regression
 ```{r}
 # build a logit regression model  
-logit_model<-glm(income~age+workclass+education+education.num+marital.status+occupation+relationship+race+sex+capital.gain+capital.loss+hours.per.week+native.country,  
+logit_model<-glm(income~age+workclass+fnlwgt+education+education.num+marital.status+occupation+relationship+race+sex+capital.gain+capital.loss+hours.per.week+native.country,  
                  family="binomial",               # specifying error distribution
                  data=mydata2)                    # dataset
 summary(logit_model)
@@ -349,26 +367,25 @@ mydata2$logit_pred_class<-ifelse(mydata2$logit_pred_prob>0.5,">50K","<=50K")
 ## Confusion Matrix 
 table(mydata2$income,mydata2$logit_pred_class)
 
-## Model accuracy = (21016+4576)/32561 = 78.59%
 ```
+accuracy = 84.98%
 
 ## Holdout validation
 ```{r}
 
 # Train model on training dataset only 
-logit_model_2<-glm(income~age+workclass+education+education.num+marital.status+occupation+relationship+race+sex+capital.gain+capital.loss+hours.per.week+native.country,  
+logit_model_2<-glm(income~age+workclass+fnlwgt+education+education.num+marital.status+occupation+relationship+race+sex+capital.gain+capital.loss+hours.per.week+native.country,  
                  family="binomial",               # specifying error distribution
-                 data=mydata2)                    # dataset
+                 data=training)                    # dataset
 summary(logit_model)
 
-## Make prediction on training dataset
+# Make predictions
 training$logit_pred_prob<-predict(logit_model_2,training,type="response") # get predicted probabilities
 training$logit_pred_class<-ifelse(training$logit_pred_prob>0.5,">50K","<=50K") 
 
 ## Confusion Matrix 
 table(training$income,training$logit_pred_class)
 
-## Training accuracy = (16876+3661)/24162 = 85%
 ```
 
 ```{r}
@@ -380,19 +397,17 @@ test$logit_pred_class<-ifelse(test$logit_pred_prob>0.5,">50K","<=50K")
 table(test$income,test$logit_pred_class,dnn=c("Predicted","Actual"))
 
 
-## Testing accuracy = (4140+915)/6000 = 84.25%
 ```
-
+test accuracy=84.15%
 
 ##Random Forest
 
+
+
 ```{r}
-set.seed(1)
 #install.packages("randomForest")
 library(randomForest)
-rf_model<-randomForest(income~age+workclass+fnlwgt+education+education.num+marital.status+occupation+relationship+race+sex+capital.loss+capital.gain+hours.per.week+native.country,              
-                       # model formula
-                       data=mydata2,ntree=1000, cutoff=c(0.5,0.5))
+rf_model<-randomForest(income~age+workclass+fnlwgt+education+education.num+marital.status+occupation+relationship+race+sex+capital.gain+capital.loss+hours.per.week+native.country,data=mydata2)
 ```
 
 
@@ -405,49 +420,61 @@ head(rf_model$predicted)   # the class favored by more trees (i.e. majority vote
 
 ```{r}
 varImpPlot(rf_model)  # importance of variables 
-```
 
-```{r}
-head(rf_model$vote)
-
-mydata2$rf_vote<-predict(rf_model,type="prob")[,2]
-head(mydata2)
-
-## Make prediction on test dataset
+# Make prediction
 mydata2$rf_model_prob<-predict(rf_model,mydata2,type="response")
 
 ## Confusion Matrix 
 table(mydata2$income,mydata2$rf_model_prob,dnn=c("Predicted","Actual"))
-
-##Calculate the accuracy:(22189+6620)/32561
-print((22189+6620)/32561)
 ```
-So the accuracy level of Random Forest Model is 88.47701%.
-```{r}
-## Performance Visualization with ROC
-rd_model_roc<-roc(mydata2$income,mydata2$rf_vote,auc=TRUE)
-plot(rd_model_roc,print.auc=TRUE,print.auc.y=.3, col="red")
-```
-
-## Performance Visualization with ROC
-```{r}
-logit_roc<-roc(test$income,test$logit_pred_prob,auc=TRUE)
-plot(logit_roc,print.auc=TRUE,print.auc.y=.3, col="red")
-```
-
-
+accuracy=95.48%
 
 ```{r}
-#ct_roc<-roc(test$default,test$ct_pred_prob,auc=TRUE)
-#plot(ct_roc,print.auc=TRUE,col="blue")
-
-#rf_roc<-roc(test$default,test$rf_pred_prob,auc=TRUE)
-#plot(rf_roc,print.auc=TRUE,print.auc.y=.4,col="green", add=TRUE)
-
-#logit_roc<-roc(test$income,test$logit_pred_prob,auc=TRUE)
-#plot(logit_roc,print.auc=TRUE,print.auc.y=.3, col="red",add=TRUE)
-
-#svm_roc<-roc(test$incomet,test$svm_dv,auc=TRUE)
-#plot(svm_roc,print.auc=TRUE,print.auc.y=.2, col="black",add=TRUE)
+trainingRF<-training
+testRF<-test
 ```
+
+### hold-out validation vs. OOB errors
+Following a similar process, we can validate the performance of a random forest model. 
+```{r}
+set.seed(1)
+rf_model_oob<-randomForest(income~age+workclass+fnlwgt+education+education.num+marital.status+occupation+relationship+race+sex+capital.gain+capital.loss+hours.per.week+native.country,data=training,mtry=2,ntree=500, cutoff=c(0.5,0.5),importance=TRUE)
+rf_model_oob
+
+testRF
+testRF$rf_cross_prob<-predict(rf_model_oob,testRF,type="prob")[,2]
+testRF$rf_cross_class<-predict(rf_model_oob,testRF,type="class")
+table(testRF$income==testRF$rf_cross_class) 
+table(testRF$income,testRF$rf_cross_class,dnn=c("Predicted","Actual"))
+
+```
+OOB Error rate = 13.91%, OOB Accuracy=86.09%
+
+Test Accuracy = (4227+978)/6000 = 86.63%
+
+```{r}
+# Execute the tuning process
+#res <- tuneRF(x = trainingRF%>%select(age,workclass,fnlwgt,education,education.num,marital.status,occupation,relationship,race,sex,capital.gain,capital.loss,hours.per.week,native.country),y = trainingRF$income,mtryStart=2,ntreeTry = 500)
+#res
+```
+
+### ROC Curves
+
+
+
+```{r}
+ct_roc<-roc(testRF$income,testRF$ct_ad_pred_prob,auc=TRUE)
+plot(ct_roc,print.auc=TRUE,col="blue")
+
+rf_roc<-roc(testRF$income,testRF$rf_cross_prob,auc=TRUE)
+plot(rf_roc,print.auc=TRUE,print.auc.y=.4,col="green", add=TRUE)
+
+logit_roc<-roc(testRF$income,testRF$logit_pred_prob,auc=TRUE)
+plot(logit_roc,print.auc=TRUE,print.auc.y=.3, col="red",add=TRUE)
+
+svm_roc<-roc(testRF$income,testRF$svm_dv,auc=TRUE)
+plot(svm_roc,print.auc=TRUE,print.auc.y=.2, col="black",add=TRUE)
+```
+
+
 
